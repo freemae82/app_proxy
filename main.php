@@ -1,104 +1,158 @@
 <?php
-#header("Access-Control-Allow-Headers: Authorization");
-#header("Access-Control-Allow-Methods: GET,POST,PUT,DELETE");
-#header("Access-Control-Allow-Origin: *");
-$url = 'https://'.str_replace('//', '/', 'console2.ironwifi.com/'.$_SERVER['REQUEST_URI']);
-
-/** XMLHttpRequest PHP Proxy
- * @author          Andrea Giammarchi
- * @blog            http://webreflection.blogspot.com/
- * @license         Mit Style License
- * @requires        curl and Apache webserver
- * @description     basic authentication, GET, POST, HEAD, PUT, DELETE, others requests types.
- *                  Nothing to do on the client side, except put "proxy.php?url=" as request prefix.
- *                  The rest should be like normal in-server interaction
- * @note            DON'T TRY AT HOME
+/*
+ * Author - Rob Thomson <rob@marotori.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
  */
 
+session_start();
+ob_start();
+
+/* config settings */
+$base = "https://www.serve.com";  //set this to the url you want to scrape
+$ckfile = '/tmp/simpleproxy-cookie-'.session_id();  //this can be set to anywhere you fancy!  just make sure it is secure.
 
 
-// work in progress
-/* without Apache ... requires alternatives for Authorization and other stuff not in $_SERVER
-if(!function_exists('getallheaders')){
-    function getallheaders(){
-        $headers= array();
-        foreach($_SERVER as $key => $value){
-            if(0 === strpos($key, 'HTTP_'))
-                $headers[str_replace(' ', '-', ucwords(str_replace('_', ' ', strtolower(substr($key, 5)))))] = $value;
+
+/* all system code happens below - you should not need to edit it! */
+
+//work out cookie domain
+$cookiedomain = str_replace("http://www.","",$base);
+$cookiedomain = str_replace("https://www.","",$cookiedomain);
+$cookiedomain = str_replace("www.","",$cookiedomain);
+
+$url = $base . $_SERVER['REQUEST_URI'];
+
+if($_SERVER['HTTPS'] == 'on'){
+        $mydomain = 'https://'.$_SERVER['HTTP_HOST'];
+} else {
+        $mydomain = 'http://'.$_SERVER['HTTP_HOST'];
+}
+
+// Open the cURL session
+$curlSession = curl_init();
+"proxy3.php" 103L, 2856C written                                                                    
+Last login: Sat Feb 28 14:53:35 2015 from 107.144.48.39
+-bash: PROMPT_COMMAND: unbound variable
+-bash-4.1# pwd
+/root
+-bash-4.1# cd /var/www/html/hot-water-heater-repair/
+-bash-4.1# ls
+1.ipa       cse          expl           inc          i.php      paused.conf  redirect.php  site3.html  test2.html
+adsense     db           fp             index2.html  jsapi      proxy2.php   remote.php    site.php    test.html
+afsonline   delay.php    get_proxy.php  index.php    log.txt    proxy3.php   resources     style.css   uds
+cookie.txt  example.log  headers.log    info.php     named.php  proxy.php    site2.php     tags.php
+-bash-4.1# vi proxy3.php 
+You have new mail in /var/spool/mail/root
+-bash-4.1# cat proxy3.php 
+<?php
+/*
+ * Author - Rob Thomson <rob@marotori.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
+
+session_start();
+ob_start();
+
+/* config settings */
+$base = "https://www.serve.com";  //set this to the url you want to scrape
+$ckfile = '/tmp/simpleproxy-cookie-'.session_id();  //this can be set to anywhere you fancy!  just make sure it is secure.
+
+
+
+/* all system code happens below - you should not need to edit it! */
+
+//work out cookie domain
+$cookiedomain = str_replace("http://www.","",$base);
+$cookiedomain = str_replace("https://www.","",$cookiedomain);
+$cookiedomain = str_replace("www.","",$cookiedomain);
+
+$url = $base . $_SERVER['REQUEST_URI'];
+
+if($_SERVER['HTTPS'] == 'on'){
+        $mydomain = 'https://'.$_SERVER['HTTP_HOST'];
+} else {
+        $mydomain = 'http://'.$_SERVER['HTTP_HOST'];
+}
+
+// Open the cURL session
+$curlSession = curl_init();
+
+curl_setopt ($curlSession, CURLOPT_URL, $url);
+curl_setopt ($curlSession, CURLOPT_HEADER, 1);
+
+
+if($_SERVER['REQUEST_METHOD'] == 'POST'){
+        curl_setopt ($curlSession, CURLOPT_POST, 1);
+        curl_setopt ($curlSession, CURLOPT_POSTFIELDS, $_POST);
+}
+
+curl_setopt($curlSession, CURLOPT_RETURNTRANSFER,1);
+curl_setopt($curlSession, CURLOPT_TIMEOUT,30);
+curl_setopt($curlSession, CURLOPT_SSL_VERIFYHOST, 1);
+curl_setopt ($curlSession, CURLOPT_COOKIEJAR, $ckfile); 
+curl_setopt ($curlSession, CURLOPT_COOKIEFILE, $ckfile);
+
+//handle other cookies cookies
+foreach($_COOKIE as $k=>$v){
+        if(is_array($v)){
+                $v = serialize($v);
         }
-        return $headers;
-    }
-}
-// */
-
-// GET, POST, PUT, HEAD, DELETE, ect ...
-$method = $_SERVER['REQUEST_METHOD'];
-
-// curl headers array
-$headers= array();
-foreach(getallheaders() as $key => $value)
-    $headers[] = $key.': '.$value;
-
-// curl options
-$opts   = array(
-    CURLOPT_HEADER => true,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_BINARYTRANSFER => true,
-    CURLOPT_CUSTOMREQUEST => $method,
-    CURLOPT_HTTPHEADER => $headers
-);
-
-// if request is post ...
-if($method === 'POST'){
-    // populate the array of keys/values to send
-    $headers = array();
-    foreach($_POST as $key => $value)
-        $headers[] = rawurlencode($key).'='.rawurlencode($value);
-    $opts[CURLOPT_POST] = true;
-    $opts[CURLOPT_POSTFIELDS] = implode('&', $headers);
+        curl_setopt($curlSession,CURLOPT_COOKIE,"$k=$v; domain=.$cookiedomain ; path=/");
 }
 
-// if it is a basic authorization request ...
-if(isset($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'])){
-    // create user and pass parameters to send
-    $opts[CURLOPT_HTTPAUTH] = CURLAUTH_BASIC;
-    $opts[CURLOPT_PROXYUSERPWD] = '['.
-        rawurlencode($_SERVER['PHP_AUTH_USER'])
-    .']:['.
-        rawurlencode($_SERVER['PHP_AUTH_PW'])
-    .']'
-    ;
+//Send the request and store the result in an array
+$response = curl_exec ($curlSession);
+
+// Check that a connection was made
+if (curl_error($curlSession)){
+        // If it wasn't...
+        print curl_error($curlSession);
+} else {
+
+        //clean duplicate header that seems to appear on fastcgi with output buffer on some servers!!
+        $response = str_replace("HTTP/1.1 100 Continue\r\n\r\n","",$response);
+
+        $ar = explode("\r\n\r\n", $response, 2); 
+
+
+        $header = $ar[0];
+        $body = $ar[1];
+
+        //handle headers - simply re-outputing them
+        $header_ar = split(chr(10),$header); 
+        foreach($header_ar as $k=>$v){
+                if(!preg_match("/^Transfer-Encoding/",$v)){
+                        $v = str_replace($base,$mydomain,$v); //header rewrite if needed
+                        header(trim($v));
+                }
+        }
+
+  //rewrite all hard coded urls to ensure the links still work!
+        $body = str_replace($base,$mydomain,$body);
+
+        print $body;
+
 }
 
-// init curl session
-$call   = $session = curl_init(substr($_SERVER['QUERY_STRING'], 4));
+curl_close ($curlSession);
 
-// set all options
-curl_setopt_array($call, $opts);
-
-// clear unnecessary variables
-unset($opts);
-unset($headers);
-
-// retrieve the output
-$result = explode(PHP_EOL, curl_exec($call));
-
-// nothing else to do so far (this version is not compatible with COMET)
-curl_close($call);
-
-// for each returned information ...
-for($i = 0, $length = count($result), $sent = array(); $i < $length; ++$i){
-    $value = $result[$i];
-    
-    // if all headers has been sent ...
-    if($value === '')
-        // send the output
-        exit(implode(PHP_EOL, array_splice($result, ++$i)));
-    else {
-        // ... or send the header (do not overwrite if already sent)
-        $tmp = explode(':', $value);
-        header($value, !isset($sent[strtolower($tmp[0])]));
-    }
-}
 
 ?>
